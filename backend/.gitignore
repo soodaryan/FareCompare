@@ -21,8 +21,8 @@ client/dist/
 cookies/
 
 # Large Data Files (>100MB)
-bus routing/fare_attributes.csv
-bus routing/stop_times.csv
+backend/bus_routing/fare_attributes.csv
+backend/bus_routing/stop_times.csv
 
 # OS generated files
 .DS_Store
