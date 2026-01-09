@@ -3,24 +3,24 @@ import { Search, MapPin, Navigation } from 'lucide-react';
 import { LocationSearchInput } from './LocationSearchInput';
 
 interface SearchFormProps {
-  onSearch: (pickup: { lat: string; lng: string }, drop: { lat: string; lng: string }) => void;
+  onSearch: (pickup: { lat: string; lng: string; address?: string }, drop: { lat: string; lng: string; address?: string }) => void;
   onPickupChange: (lat: number, lng: number) => void;
   onDropChange: (lat: number, lng: number) => void;
   isLoading: boolean;
-  activeTab?: 'cabs' | 'bus';
+  activeTab?: 'cabs' | 'bus' | 'metro';
 }
 
 export const SearchForm: React.FC<SearchFormProps> = ({ onSearch, onPickupChange, onDropChange, isLoading, activeTab = 'cabs' }) => {
-  const [pickup, setPickup] = useState<{lat: number, lng: number} | null>(null);
-  const [drop, setDrop] = useState<{lat: number, lng: number} | null>(null);
+  const [pickup, setPickup] = useState<{lat: number, lng: number, address?: string} | null>(null);
+  const [drop, setDrop] = useState<{lat: number, lng: number, address?: string} | null>(null);
 
   const handlePickupSelect = (lat: number, lng: number, address: string) => {
-    setPickup({ lat, lng });
+    setPickup({ lat, lng, address });
     onPickupChange(lat, lng);
   };
 
   const handleDropSelect = (lat: number, lng: number, address: string) => {
-    setDrop({ lat, lng });
+    setDrop({ lat, lng, address });
     onDropChange(lat, lng);
   };
 
@@ -53,8 +53,8 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch, onPickupChange
     e.preventDefault();
     if (pickup && drop) {
       onSearch(
-        { lat: pickup.lat.toString(), lng: pickup.lng.toString() },
-        { lat: drop.lat.toString(), lng: drop.lng.toString() }
+        { lat: pickup.lat.toString(), lng: pickup.lng.toString(), address: pickup.address },
+        { lat: drop.lat.toString(), lng: drop.lng.toString(), address: drop.address }
       );
     }
   };
@@ -108,11 +108,11 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch, onPickupChange
             }`}
         >
             {isLoading ? (
-            <span className="animate-pulse">{activeTab === 'bus' ? 'Finding Routes...' : 'Finding Best Rates...'}</span>
+            <span className="animate-pulse">{activeTab === 'bus' ? 'Finding Routes...' : activeTab === 'metro' ? 'Finding Metro...' : 'Finding Best Rates...'}</span>
             ) : (
             <>
                 <Search size={20} />
-                {activeTab === 'bus' ? 'Bus Routes' : 'Compare Prices'}
+                {activeTab === 'bus' ? 'Bus Routes' : activeTab === 'metro' ? 'Metro Route' : 'Compare Prices'}
             </>
             )}
         </button>

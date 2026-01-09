@@ -3,9 +3,10 @@ import axios from 'axios';
 import { SearchForm } from './components/SearchForm';
 import { FareCard } from './components/FareCard';
 import { BusRouteCard } from './components/BusRouteCard';
+import { MetroRouteCard } from './components/MetroRouteCard';
 import { MapView } from './components/MapView';
 import { MapWrapper } from './components/MapWrapper';
-import { LayoutDashboard, CarFront, Bus, Car } from 'lucide-react';
+import { LayoutDashboard, CarFront, Bus, Car, Train } from 'lucide-react';
 
 interface FareEstimate {
   platform: 'ola' | 'rapido' | 'uber';
@@ -42,22 +43,41 @@ export interface BusRoute {
   total_distance?: string;
 }
 
+interface MetroSegment {
+  line_name: string;
+  vehicle_type: string;
+  departure_station: string;
+  arrival_station: string;
+  num_stops: number;
+  duration_seconds: number;
+  stations: string[];
+}
+
+interface MetroRoute {
+  total_duration_seconds: number;
+  total_distance_meters: number;
+  segments: MetroSegment[];
+  line_changes: { station: string; from_line: string; to_line: string }[];
+}
+
 function App() {
   const [estimates, setEstimates] = useState<FareEstimate[]>([]);
   const [busRoutes, setBusRoutes] = useState<BusRoute[]>([]);
   const [selectedBusRoute, setSelectedBusRoute] = useState<BusRoute | null>(null);
+  const [metroRoute, setMetroRoute] = useState<MetroRoute | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pickupCoords, setPickupCoords] = useState<{lat: number, lng: number} | null>(null);
   const [dropCoords, setDropCoords] = useState<{lat: number, lng: number} | null>(null);
-  const [activeTab, setActiveTab] = useState<'cabs' | 'bus'>('cabs');
+  const [activeTab, setActiveTab] = useState<'cabs' | 'bus' | 'metro'>('cabs');
 
-  const handleSearch = async (pickup: { lat: string; lng: string }, drop: { lat: string; lng: string }) => {
+  const handleSearch = async (pickup: { lat: string; lng: string; address?: string }, drop: { lat: string; lng: string; address?: string }) => {
     setLoading(true);
     setError(null);
     setEstimates([]);
     setBusRoutes([]);
     setSelectedBusRoute(null);
+    setMetroRoute(null);
 
     const payload = {
       pickup: { lat: parseFloat(pickup.lat), lng: parseFloat(pickup.lng) },
@@ -66,19 +86,29 @@ function App() {
 
     try {
       if (activeTab === 'cabs') {
-          const response = await axios.post('http://localhost:3000/api/compare-fares', payload);
-          if (response.data.success) {
-            setEstimates(response.data.estimates);
-          } else {
-            setError('Failed to fetch estimates');
-          }
+        const response = await axios.post('http://localhost:3000/api/compare-fares', payload);
+        if (response.data.success) {
+          setEstimates(response.data.estimates);
+        } else {
+          setError('Failed to fetch estimates');
+        }
+      } else if (activeTab === 'bus') {
+        const response = await axios.post('http://localhost:3000/api/bus-routes', payload);
+        if (response.data.success) {
+          setBusRoutes(response.data.routes);
+        } else {
+          setError('Failed to fetch bus routes');
+        }
       } else {
-          const response = await axios.post('http://localhost:3000/api/bus-routes', payload);
-          if (response.data.success) {
-            setBusRoutes(response.data.routes);
-          } else {
-            setError('Failed to fetch bus routes');
-          }
+        const response = await axios.post('http://localhost:3000/api/metro-route', {
+          originName: pickup.address || `${pickup.lat},${pickup.lng}`,
+          destinationName: drop.address || `${drop.lat},${drop.lng}`
+        });
+        if (response.data.success) {
+          setMetroRoute(response.data.route);
+        } else {
+          setError('Failed to fetch metro route');
+        }
       }
     } catch (err) {
       setError('Error connecting to backend server. Make sure it is running on port 3000.');
@@ -107,7 +137,7 @@ function App() {
                  </div>
                  <div className="flex gap-4">
                      <button 
-                        onClick={() => setActiveTab('cabs')}
+                      onClick={() => setActiveTab('cabs')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                             activeTab === 'cabs' ? 'bg-black text-white shadow-md' : 'text-[#666666] hover:bg-gray-100'
                         }`}
@@ -115,12 +145,20 @@ function App() {
                          <Car size={16} /> Cabs
                      </button>
                      <button 
-                        onClick={() => setActiveTab('bus')}
+                      onClick={() => setActiveTab('bus')}
                         className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
                             activeTab === 'bus' ? 'bg-blue-600 text-white shadow-md' : 'text-[#666666] hover:bg-gray-100'
                         }`}
                      >
                          <Bus size={16} /> Bus
+                     </button>
+                     <button 
+                      onClick={() => setActiveTab('metro')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                        activeTab === 'metro' ? 'bg-indigo-600 text-white shadow-md' : 'text-[#666666] hover:bg-gray-100'
+                      }`}
+                     >
+                      <Train size={16} /> Metro
                      </button>
                  </div>
              </div>
@@ -131,11 +169,11 @@ function App() {
             {/* Left Column: Search & Results */}
             <div className="lg:col-span-4 space-y-6 flex flex-col h-full">
                  <SearchForm 
-                     onSearch={handleSearch} 
-                     isLoading={loading} 
-                     onPickupChange={(lat, lng) => setPickupCoords({lat, lng})}
-                     onDropChange={(lat, lng) => setDropCoords({lat, lng})}
-                     activeTab={activeTab}
+                   onSearch={handleSearch} 
+                   isLoading={loading} 
+                   onPickupChange={(lat, lng) => setPickupCoords({lat, lng})}
+                   onDropChange={(lat, lng) => setDropCoords({lat, lng})}
+                   activeTab={activeTab}
                  />
 
                  {/* Results Section */}
@@ -180,13 +218,22 @@ function App() {
                             </div>
                          </div>
                      )}
+                     {activeTab === 'metro' && !loading && metroRoute && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-bold text-[#333333] text-lg">Metro Route</h3>
+                          <span className="text-xs text-[#666666] bg-gray-100 px-2 py-1 rounded-md border border-gray-200">{metroRoute.segments.length} segments</span>
+                        </div>
+                        <MetroRouteCard route={metroRoute} />
+                      </div>
+                     )}
                      
-                     {!loading && ((activeTab === 'cabs' && estimates.length === 0) || (activeTab === 'bus' && busRoutes.length === 0)) && !error && (
+                     {!loading && ((activeTab === 'cabs' && estimates.length === 0) || (activeTab === 'bus' && busRoutes.length === 0) || (activeTab === 'metro' && !metroRoute)) && !error && (
                          <div className="text-center text-[#666666] py-12 border-2 border-dashed border-gray-200 rounded-2xl bg-white">
                              <LayoutDashboard className="mx-auto h-12 w-12 text-gray-300 mb-3" />
                              <p className="text-sm font-medium text-[#333333]">Enter pickup & drop locations</p>
                              <p className="text-xs text-[#666666] mt-1">
-                                 {activeTab === 'cabs' ? 'Compare prices across platforms instantly' : 'Find optimized bus routes'}
+                           {activeTab === 'cabs' ? 'Compare prices across platforms instantly' : activeTab === 'bus' ? 'Find optimized bus routes' : 'Find metro connections'}
                              </p>
                          </div>
                      )}
