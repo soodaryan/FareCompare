@@ -1,5 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import fs from 'fs';
 import { FareService } from './services/fare.service';
 import { BusService } from './services/bus.service';
 import { BrowserService } from './services/browser.service';
@@ -7,6 +11,7 @@ import { GeoLocation } from './interfaces/types';
 
 const app = express();
 const port = process.env.PORT || 3000;
+const exec = promisify(execFile);
 
 app.use(cors());
 app.use(express.json());
@@ -66,6 +71,30 @@ app.post('/api/bus-routes', async (req, res) => {
   } catch (error) {
     console.error('Bus API Error:', error);
     res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+app.post('/api/metro-route', async (req, res) => {
+  try {
+    const { originName, destinationName } = req.body;
+    if (!originName || !destinationName) {
+      return res.status(400).json({ error: 'originName and destinationName are required' });
+    }
+
+    const repoRoot = path.resolve(process.cwd(), '..');
+    const venvPython = path.join(repoRoot, '.venv', 'bin', 'python');
+    const pythonCmd = process.env.PYTHON_BIN || (fs.existsSync(venvPython) ? venvPython : 'python3');
+    const scriptPath = path.join(process.cwd(), 'metro', 'metro_service.py');
+    const { stdout } = await exec(pythonCmd, [scriptPath, originName, destinationName], {
+      cwd: path.join(process.cwd(), 'metro'),
+      env: process.env,
+      maxBuffer: 1024 * 1024,
+    });
+    const route = JSON.parse(stdout);
+    return res.json({ success: true, route });
+  } catch (error) {
+    console.error('Metro API Error:', error);
+    return res.status(500).json({ error: 'Failed to compute metro route' });
   }
 });
 
