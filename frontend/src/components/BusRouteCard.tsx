@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Bus, Clock, MapPin, Footprints, ChevronDown, ChevronUp } from 'lucide-react';
+import { Bus, Clock, Footprints, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface RouteSegment {
   type: 'walk' | 'bus';

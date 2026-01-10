@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, Navigation } from 'lucide-react';
+import { Search, Navigation } from 'lucide-react';
 import { LocationSearchInput } from './LocationSearchInput';
 
 interface SearchFormProps {
@@ -14,12 +14,12 @@ export const SearchForm: React.FC<SearchFormProps> = ({ onSearch, onPickupChange
   const [pickup, setPickup] = useState<{lat: number, lng: number} | null>(null);
   const [drop, setDrop] = useState<{lat: number, lng: number} | null>(null);
 
-  const handlePickupSelect = (lat: number, lng: number, address: string) => {
+  const handlePickupSelect = (lat: number, lng: number, _address: string) => {
     setPickup({ lat, lng });
     onPickupChange(lat, lng);
   };
 
-  const handleDropSelect = (lat: number, lng: number, address: string) => {
+  const handleDropSelect = (lat: number, lng: number, _address: string) => {
     setDrop({ lat, lng });
     onDropChange(lat, lng);
   };
