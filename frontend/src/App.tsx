@@ -66,14 +66,14 @@ function App() {
 
     try {
       if (activeTab === 'cabs') {
-          const response = await axios.post('http://localhost:3000/api/compare-fares', payload);
+          const response = await axios.post('/api/compare-fares', payload);
           if (response.data.success) {
             setEstimates(response.data.estimates);
           } else {
             setError('Failed to fetch estimates');
           }
       } else {
-          const response = await axios.post('http://localhost:3000/api/bus-routes', payload);
+          const response = await axios.post('/api/bus-routes', payload);
           if (response.data.success) {
             setBusRoutes(response.data.routes);
           } else {
